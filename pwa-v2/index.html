@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="One-to-All">
+  <meta name="description" content="One-to-All — unified AI gateway with Codestral coding assistant">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <title>One-to-All — AI Coding Gateway</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --bg: #0d1117; --surface: #161b22; --surface-2: #21262d; --border: #30363d;
+      --text: #e6edf3; --muted: #7d8590; --accent: #58a6ff; --green: #3fb950;
+      --user: #1f6feb33; --danger: #f85149; --code-bg: #0d1117;
+    }
+    html, body { height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      display: flex; flex-direction: column;
+      height: 100dvh; overflow: hidden;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+    header {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 10px 14px; display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+    }
+    header h1 { font-size: 17px; font-weight: 600; flex: 1; }
+    .badge {
+      font-size: 10px; background: var(--green); color: #fff;
+      padding: 2px 8px; border-radius: 10px; font-weight: 600; white-space: nowrap;
+    }
+    select {
+      background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+      padding: 6px 10px; border-radius: 8px; font-size: 12px; cursor: pointer; outline: none; max-width: 140px;
+    }
+    #chat { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    #chat::-webkit-scrollbar { width: 4px; }
+    #chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    .welcome { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; text-align: center; }
+    .welcome .big { font-size: 54px; }
+    .welcome h2 { font-size: 20px; }
+    .welcome p { color: var(--muted); font-size: 14px; max-width: 300px; line-height: 1.5; }
+    .chips { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; max-width: 340px; }
+    .chip {
+      background: var(--surface); border: 1px solid var(--border); color: var(--text);
+      padding: 12px; border-radius: 10px; font-size: 12px; cursor: pointer; text-align: left;
+    }
+    .chip:active { background: var(--surface-2); }
+    .msg { max-width: 88%; padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.55; white-space: pre-wrap; word-wrap: break-word; }
+    .msg.user { align-self: flex-end; background: var(--user); border: 1px solid #1f6feb55; border-bottom-right-radius: 4px; }
+    .msg.ai { align-self: flex-start; background: var(--surface); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+    .msg .tag { font-size: 10px; color: var(--accent); margin-bottom: 4px; font-weight: 600; }
+    .code-block { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; margin: 8px 0; overflow: hidden; }
+    .code-head { display: flex; justify-content: space-between; align-items: center; background: var(--surface-2); padding: 5px 10px; font-size: 11px; color: var(--muted); }
+    .copy-btn { background: none; border: 1px solid var(--border); color: var(--text); font-size: 11px; padding: 2px 10px; border-radius: 6px; cursor: pointer; }
+    .copy-btn:active { background: var(--surface); }
+    .msg pre { margin: 0; padding: 10px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .typing { align-self: flex-start; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; color: var(--muted); font-size: 13px; }
+    .typing span { animation: blink 1.4s infinite; }
+    .typing span:nth-child(2) { animation-delay: .2s; }
+    .typing span:nth-child(3) { animation-delay: .4s; }
+    @keyframes blink { 0%,60%,100% { opacity: .3; } 30% { opacity: 1; } }
+    .err { align-self: center; color: var(--danger); font-size: 13px; padding: 8px 14px; background: #f8514911; border: 1px solid #f8514933; border-radius: 10px; max-width: 90%; }
+    .input-bar {
+      background: var(--surface); border-top: 1px solid var(--border);
+      padding: 10px 14px; display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0;
+    }
+    #input {
+      flex: 1; background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+      padding: 10px 14px; border-radius: 20px; font-size: 14px; outline: none; resize: none;
+      max-height: 110px; min-height: 40px; line-height: 1.4; font-family: inherit;
+    }
+    #input:focus { border-color: var(--accent); }
+    #send {
+      background: var(--accent); color: #fff; border: none; width: 40px; height: 40px;
+      border-radius: 50%; font-size: 18px; cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #send:disabled { opacity: .5; }
+    #send:active { transform: scale(.92); }
+    #banner {
+      display: none; background: var(--surface-2); border-top: 1px solid var(--accent);
+      padding: 8px 14px; font-size: 12px; align-items: center; justify-content: space-between; gap: 10px;
+    }
+    #banner.show { display: flex; }
+    #install { background: var(--accent); color: #fff; border: none; padding: 5px 14px; border-radius: 7px; font-size: 12px; cursor: pointer; white-space: nowrap; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🤖 One-to-All</h1>
+    <select id="model">
+      <option value="mistralai/codestral-2501" selected>Codestral 2501 ⌨️</option>
+      <option value="qwen/qwen-2.5-coder-32b-instruct">Qwen 2.5 Coder ⌨️</option>
+      <option value="deepseek/deepseek-r1">DeepSeek R1</option>
+      <option value="deepseek/deepseek-chat">DeepSeek V3</option>
+      <option value="meta-llama/llama-4-scout">Llama 4 Scout</option>
+      <option value="mistralai/mistral-small-3.1-24b-instruct">Mistral Small 3.1</option>
+      <option value="google/gemini-2.0-flash-exp:free">Gemini 2.0 Flash</option>
+      <option value="openai/gpt-4o-mini">GPT-4o mini</option>
+    </select>
+    <span class="badge">v2</span>
+  </header>
+
+  <div id="banner">
+    <span>📲 Install One-to-All on your device</span>
+    <button id="install">Install</button>
+  </div>
+
+  <div id="chat">
+    <div class="welcome" id="welcome">
+      <div class="big">⌨️</div>
+      <h2>One-to-All v2</h2>
+      <p>AI coding gateway. Codestral is your default coding model. Ask for code, debug, refactor — it renders with copy buttons.</p>
+      <div class="chips">
+        <div class="chip" data-q="Write a Python function to check if a string is a palindrome, with tests">🐍 Palindrome fn</div>
+        <div class="chip" data-q="Write a React component for a todo list with TypeScript">⚛️ React todo list</div>
+        <div class="chip" data-q="Debug this SQL: SELECT * FROM users WHERE age > 18 ORDER BY name GROUP BY city">🗄️ Debug SQL</div>
+        <div class="chip" data-q="Explain async/await in JavaScript with code examples">📖 Explain async/await</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-bar">
+    <textarea id="input" rows="1" placeholder="Ask Codestral to code anything..." autocomplete="off"></textarea>
+    <button id="send">↑</button>
+  </div>
+
+  <script>
+    const API = window.location.origin + '/api/functions';
+    const chat = document.getElementById('chat');
+    const input = document.getElementById('input');
+    const sendBtn = document.getElementById('send');
+    const modelSel = document.getElementById('model');
+    const welcome = document.getElementById('welcome');
+    let history = [];
+    let busy = false;
+
+    input.addEventListener('input', () => {
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 110) + 'px';
+    });
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+    });
+    document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+      input.value = c.dataset.q; send();
+    }));
+
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+    // Render markdown-ish: code fences with copy button
+    function render(text) {
+      const parts = text.split(/```(\w*)\n?/);
+      let html = '';
+      for (let i = 0; i < parts.length; i++) {
+        if (i % 2 === 0) { html += esc(parts[i]); }
+        else {
+          const lang = parts[i] || 'code';
+          const code = parts[++i] || '';
+          const id = 'c' + Math.random().toString(36).slice(2, 8);
+          html += `<div class="code-block"><div class="code-head"><span>${esc(lang)}</span><button class="copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('${id}').textContent).then(()=>this.textContent='Copied ✓')">Copy</button></div><pre><code id="${id}">${esc(code)}</code></pre></div>`;
+        }
+      }
+      return html;
+    }
+
+    async function send() {
+      const text = input.value.trim();
+      if (!text || busy) return;
+      welcome.style.display = 'none';
+      const label = modelSel.options[modelSel.selectedIndex].text;
+
+      addMsg('user', esc(text));
+      history.push({ role: 'user', content: text });
+      input.value = ''; input.style.height = 'auto';
+      busy = true; sendBtn.disabled = true;
+
+      const typ = document.createElement('div');
+      typ.className = 'typing'; typ.innerHTML = '<span>●</span><span>●</span><span>●</span>';
+      chat.appendChild(typ); chat.scrollTop = chat.scrollHeight;
+
+      try {
+        const res = await fetch(API + '/chatCompletion', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: modelSel.value, messages: history, max_tokens: 2000 })
+        });
+        const data = await res.json();
+        typ.remove();
+        if (data.error) {
+          const e = document.createElement('div'); e.className = 'err';
+          e.textContent = data.error + (data.message ? ' — ' + data.message : '');
+          chat.appendChild(e); setTimeout(() => e.remove(), 8000);
+        } else {
+          const aiText = data.choices?.[0]?.message?.content || 'No response';
+          addMsg('ai', render(aiText), label);
+          history.push({ role: 'assistant', content: aiText });
+        }
+      } catch (err) {
+        typ.remove();
+        const e = document.createElement('div'); e.className = 'err';
+        e.textContent = 'Connection failed: ' + err.message;
+        chat.appendChild(e); setTimeout(() => e.remove(), 8000);
+      }
+      busy = false; sendBtn.disabled = false; input.focus();
+    }
+
+    function addMsg(role, html, tag) {
+      const el = document.createElement('div');
+      el.className = 'msg ' + role;
+      el.innerHTML = (role === 'ai' && tag ? `<div class="tag">${tag}</div>` : '') + html;
+      chat.appendChild(el); chat.scrollTop = chat.scrollHeight;
+    }
+
+    sendBtn.addEventListener('click', send);
+
+    // PWA install
+    let deferred;
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault(); deferred = e;
+      document.getElementById('banner').classList.add('show');
+    });
+    document.getElementById('install').addEventListener('click', async () => {
+      if (!deferred) return;
+      deferred.prompt();
+      await deferred.userChoice;
+      deferred = null;
+      document.getElementById('banner').classList.remove('show');
+    });
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  </script>
+</body>
+</html>
